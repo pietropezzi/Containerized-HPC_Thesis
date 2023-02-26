@@ -1,0 +1,39 @@
+Bootstrap: docker
+From: ubuntu:20.04
+
+%files
+    # Copy all mpi-bilaterl implementation files into opt directory.
+    bilateral-filter-mpi.c /opt
+    hpc.h /opt
+    ppm.h /opt
+
+%environment
+    export OMPI_DIR=/opt/ompi
+    export PATH="$OMPI_DIR/bin:$PATH"
+    export LD_LIBRARY_PATH="$OMPI_DIR/lib:$LD_LIBRARY_PATH"
+
+%post
+    apt-get update
+    apt-get install -y wget bash gcc
+    apt-get install -y g++ make
+
+    # Install MPI
+    export OMPI_DIR=/opt/ompi
+    export OMPI_VERSION=4.1.4
+    export OMPI_URL="https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-$OMPI_VERSION.tar.bz2"
+    mkdir -p /tmp/ompi
+    mkdir -p /opt
+    cd /tmp/ompi
+    wget -O openmpi-$OMPI_VERSION.tar.bz2 $OMPI_URL 
+    tar -xjf openmpi-$OMPI_VERSION.tar.bz2
+    cd /tmp/ompi/openmpi-$OMPI_VERSION 
+    ./configure --prefix=$OMPI_DIR 
+    make -j4 install
+
+    # Set env variables so we can compile our application
+    export PATH=$OMPI_DIR/bin:$PATH
+    export LD_LIBRARY_PATH=$OMPI_DIR/lib:$LD_LIBRARY_PATH
+
+    # Compile Bilateral MPI
+    cd /opt
+    mpicc -std=c99 -Wall -Wpedantic -O2 bilateral-filter-mpi.c -o mpi-bilateral -lm   

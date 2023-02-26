@@ -1,0 +1,31 @@
+Bootstrap: docker
+From: ubuntu:20.04
+
+%files
+    # Copy bilateral-filter cuda imp files into container.
+    bilateral-filter-cuda.cu /opt
+    hpc.h /opt
+    ppm.h /opt
+
+%post
+    # Update and upgrade system.
+    apt-get update
+    apt-get upgrade -y  
+    
+    # Installing needed utils and libraries.
+    apt-get install -y gcc
+    apt-get install -y build-essential
+    
+    # "disable" frontend selection before cuda toolkit installation.
+    # This skips the "Insert location" phase in the cuda toolkit installation.
+    apt-get install dialog apt-utils -y
+    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+    apt-get install -y -q 
+    
+    # Installs CUDA
+    apt-get install -y nvidia-cuda-toolkit
+    
+    # Compiles cuda bilateral filter.
+    cd /opt
+    nvcc bilateral-filter-cuda.cu -o cuda-bilateral
+
